@@ -527,16 +527,16 @@ $config = array(
         56 => array('class'=>'core:AttributeMap', 'wikioid2name'),
         /*
          * Generate the 'group' attribute populated from other variables, including eduPersonAffiliation.
+        */
          60 => array(
             'class' => 'core:GenerateGroups', 'eduPersonAffiliation', 'faculty', 'eduPersonEntitlement', 'predmetyRok', 'eduPersonOrgUnitDN'
         ),
-        */
         /*
          * All users will be members of 'users' and 'members'
+        */
         61 => array(
             'class' => 'core:AttributeAdd', 'groups' => array('users', 'members')
         ),
-        */
 
         // Adopts language from attribute to use in UI
         90 => 'core:LanguageAdaptor',

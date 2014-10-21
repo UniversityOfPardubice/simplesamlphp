@@ -32,7 +32,6 @@ $config = array(
         'redirect.sign' => true,
         'redirect.validate' => true,
         'saml:AuthnContextClassRef' => 'urn:oasis:names:tc:SAML:2.0:ac:classes:InternetProtocol',
-    ),
 
         /*
          * WARNING: SHA-1 is disallowed starting January the 1st, 2014.
@@ -52,7 +51,7 @@ $config = array(
          *
          * Please refer to the hosted SP configuration reference for more information.
           */
-        //'signature.algorithm' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+        'signature.algorithm' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
 
         /*
          * The attributes parameter must contain an array of desired attributes by the SP.
