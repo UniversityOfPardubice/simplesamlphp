@@ -8,13 +8,18 @@
  *
  * @author Lorenzo Gil, Yaco Sistemas S.L.
  * @package simpleSAMLphp
- * @version $Id$
  */
 
 if (!array_key_exists('AuthState', $_REQUEST)) {
 	throw new SimpleSAML_Error_BadRequest('Missing AuthState parameter.');
 }
 $authStateId = $_REQUEST['AuthState'];
+
+// sanitize the input
+$sid = SimpleSAML_Utilities::parseStateID($authStateId);
+if (!is_null($sid['url'])) {
+	SimpleSAML_Utilities::checkURLAllowed($sid['url']);
+}
 
 /* Retrieve the authentication state. */
 $state = SimpleSAML_Auth_State::loadState($authStateId, sspmod_multiauth_Auth_Source_MultiAuth::STAGEID);
@@ -26,13 +31,25 @@ if (array_key_exists("SimpleSAML_Auth_Default.id", $state)) {
 	$as = NULL;
 }
 
+$source = NULL;
 if (array_key_exists('source', $_REQUEST)) {
 	$source = $_REQUEST['source'];
+} else {
+	foreach ($_REQUEST as $k => $v) {
+		$k = explode('-', $k, 2);
+		if (count($k) === 2 && $k[0] === 'src') {
+			$source = base64_decode($k[1]);
+		}
+	}
+}
+if ($source !== NULL) {
 	if ($as !== NULL) {
 		$as->setPreviousSource($source);
 	}
 	sspmod_multiauth_Auth_Source_MultiAuth::delegateAuthentication($source, $state);
-} elseif (array_key_exists('multiauth:preselect', $state)) {
+}
+
+if (array_key_exists('multiauth:preselect', $state)) {
 	$source = $state['multiauth:preselect'];
 	sspmod_multiauth_Auth_Source_MultiAuth::delegateAuthentication($source, $state);
 }

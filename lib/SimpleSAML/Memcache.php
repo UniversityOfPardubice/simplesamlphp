@@ -15,7 +15,6 @@
  *
  * @author Olav Morken, UNINETT AS.
  * @package simpleSAMLphp
- * @version $Id$
  */
 class SimpleSAML_Memcache {
 
@@ -46,7 +45,7 @@ class SimpleSAML_Memcache {
 				continue;
 			}
 
-			/* Deserialize the object. */
+			/* Unserialize the object. */
 			$info = unserialize($serializedInfo);
 
 			/*
@@ -249,12 +248,13 @@ class SimpleSAML_Memcache {
 	 * @return A Memcache object of the servers in the group.
 	 */
 	private static function loadMemcacheServerGroup(array $group) {
+
+		if(!class_exists('Memcache')) {
+			throw new Exception('Missing Memcache class. Is the memcache extension installed?');
+		}
+
 		/* Create the Memcache object. */
 		$memcache = new Memcache();
-		if($memcache == NULL) {
-			throw new Exception('Unable to create an instance of a Memcache object.' .
-				' Is the memcache extension installed?');
-		}
 
 		/* Iterate over all the servers in the group and add them to the Memcache object. */
 		foreach($group as $index => $server) {
