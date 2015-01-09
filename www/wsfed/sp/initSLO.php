@@ -1,10 +1,20 @@
 <?php
 
+/**
+ * WARNING:
+ *
+ * THIS FILE IS DEPRECATED AND WILL BE REMOVED IN FUTURE VERSIONS
+ *
+ * @deprecated
+ */
+
 require_once('../../_include.php');
 
 $config = SimpleSAML_Configuration::getInstance();
 
-$session = SimpleSAML_Session::getInstance();
+SimpleSAML_Logger::warning('The file wsfed/sp/initSLO.php is deprecated and will be removed in future versions.');
+
+$session = SimpleSAML_Session::getSessionFromRequest();
 
 SimpleSAML_Logger::info('WS-Fed - SP.initSLO: Accessing WS-Fed SP initSLO script');
 
@@ -13,7 +23,7 @@ if (!$config->getBoolean('enable.wsfed-sp', false))
 
 
 if (isset($_REQUEST['RelayState'])) {
-	$returnTo = $_REQUEST['RelayState'];
+	$returnTo = SimpleSAML_Utilities::checkURLAllowed($_REQUEST['RelayState']);
 } else {
 	throw new SimpleSAML_Error_Error('NORELAYSTATE');
 }
@@ -38,7 +48,7 @@ if (isset($session) ) {
 			
 		$idpmeta = $metadata->getMetaData($idpentityid, 'wsfed-idp-remote');
 		
-		SimpleSAML_Utilities::redirect($idpmeta['prp'], array(
+		SimpleSAML_Utilities::redirectTrustedURL($idpmeta['prp'], array(
 			'wa' => 'wsignout1.0',
 			'wct' =>  gmdate('Y-m-d\TH:i:s\Z', time()),
 			'wtrealm' => $spentityid,
@@ -53,7 +63,7 @@ if (isset($session) ) {
 } else {
 
 	SimpleSAML_Logger::info('WS-Fed - SP.initSLO: User is already logged out. Go back to relaystate');
-	SimpleSAML_Utilities::redirect($returnTo);
+	SimpleSAML_Utilities::redirectTrustedURL($returnTo);
 	
 }
 
