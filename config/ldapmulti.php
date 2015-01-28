@@ -3,7 +3,6 @@
 /* 
  * Configuration for the multi-DN LDAP authentication module.
  * 
- * $Id$
  */
 
 $ldapmulti = array (
@@ -14,7 +13,7 @@ $ldapmulti = array (
 		'dnpattern'			=> 'uid=%username%,dc=feide,dc=no,ou=feide,dc=uninett,dc=no',
 		'hostname'			=> 'ldap.uninett.no',
 		'attributes'		=> NULL,
-		'enable_tls'		=> FALSE,
+		'enable_tls'		=> TRUE,
 		'search.enable'		=> FALSE,
 		'search.base'		=> NULL,
 		'search.attributes'	=> NULL,
