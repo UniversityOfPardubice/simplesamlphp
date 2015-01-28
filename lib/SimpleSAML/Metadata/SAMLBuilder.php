@@ -6,7 +6,6 @@
  * This class builds SAML 2.0 metadata for an entity by examining the metadata for the entity.
  *
  * @package simpleSAMLphp
- * @version $Id$
  */
 class SimpleSAML_Metadata_SAMLBuilder {
 
@@ -85,6 +84,20 @@ class SimpleSAML_Metadata_SAMLBuilder {
 		return $xml->ownerDocument->saveXML();
 	}
 
+	public function addSecurityTokenServiceType($metadata) {
+		assert('is_array($metadata)');
+		assert('isset($metadata["entityid"])');
+		assert('isset($metadata["metadata-set"])');
+
+		$metadata = SimpleSAML_Configuration::loadFromArray($metadata, $metadata['entityid']);
+                $defaultEndpoint = $metadata->getDefaultEndpoint('SingleSignOnService');
+                $e = new sspmod_adfs_SAML2_XML_fed_SecurityTokenServiceType();
+                $e->Location = $defaultEndpoint['Location'];
+
+		$this->addCertificate($e, $metadata);
+
+		$this->entityDescriptor->RoleDescriptor[] = $e;
+	}
 
 	/**
 	 * @param SimpleSAML_Configuration $metadata  Metadata.
@@ -114,7 +127,12 @@ class SimpleSAML_Metadata_SAMLBuilder {
 			foreach ($metadata->getArray('scope') as $scopetext) {
 				$s = new SAML2_XML_shibmd_Scope();
 				$s->scope = $scopetext;
-				$s->regexp = FALSE;
+				// Check whether $ ^ ( ) * | \ are in a scope -> assume regex.
+				if (1 === preg_match('/[\$\^\)\(\*\|\\\\]/', $scopetext)) {
+					$s->regexp = TRUE;
+				} else {
+					$s->regexp = FALSE;
+				}
 				$e->Extensions[] = $s;
 			}
 		}
@@ -140,6 +158,25 @@ class SimpleSAML_Metadata_SAMLBuilder {
 				$ea->children[] = $a;
 			}
 			$this->entityDescriptor->Extensions[] = $ea;
+		}
+
+		if ($metadata->hasValue('RegistrationInfo')) {
+			$ri = new SAML2_XML_mdrpi_RegistrationInfo();
+			foreach ($metadata->getArray('RegistrationInfo') as $riName => $riValues) {
+				switch ($riName) {
+					case 'authority':
+						$ri->registrationAuthority = $riValues;
+						break;
+					case 'instant':
+						$ri->registrationInstant = SAML2_Utils::xsDateTimeToTimestamp($riValues);
+						break;
+					case 'policies':
+						$ri->RegistrationPolicy = $riValues;
+						break;
+				}
+			}
+			$this->entityDescriptor->Extensions[] = $ri;
+
 		}
 
 		if ($metadata->hasValue('UIInfo')) {
@@ -318,6 +355,8 @@ class SimpleSAML_Metadata_SAMLBuilder {
 			return;
 		}
 
+		$attributesrequired = $metadata->getArray('attributes.required', array());
+
 		/*
 		 * Add an AttributeConsumingService element with information as name and description and list
 		 * of requested attributes
@@ -330,11 +369,17 @@ class SimpleSAML_Metadata_SAMLBuilder {
 		$attributeconsumer->ServiceDescription = $metadata->getLocalizedString('description', array());
 
 		$nameFormat = $metadata->getString('attributes.NameFormat', SAML2_Const::NAMEFORMAT_UNSPECIFIED);
-		foreach ($attributes as $attribute) {
+		foreach ($attributes as $friendlyName => $attribute) {
 			$t = new SAML2_XML_md_RequestedAttribute();
 			$t->Name = $attribute;
+			if (!is_int($friendlyName)) {
+				$t->FriendlyName = $friendlyName;
+			}
 			if ($nameFormat !== SAML2_Const::NAMEFORMAT_UNSPECIFIED) {
 				$t->NameFormat = $nameFormat;
+			}
+			if (in_array($attribute, $attributesrequired)) {
+				$t->isRequired = true;
 			}
 			$attributeconsumer->RequestedAttribute[] = $t;
 		}
@@ -383,16 +428,18 @@ class SimpleSAML_Metadata_SAMLBuilder {
 	 * Add SAML 2.0 SP metadata.
 	 *
 	 * @param array $metadata  The metadata.
+	 * @param array $protocols The protocols supported.
 	 */
-	public function addMetadataSP20($metadata) {
+	public function addMetadataSP20($metadata, $protocols = array(SAML2_Const::NS_SAMLP)) {
 		assert('is_array($metadata)');
+		assert('is_array($protocols)');
 		assert('isset($metadata["entityid"])');
 		assert('isset($metadata["metadata-set"])');
 
 		$metadata = SimpleSAML_Configuration::loadFromArray($metadata, $metadata['entityid']);
 
 		$e = new SAML2_XML_md_SPSSODescriptor();
-		$e->protocolSupportEnumeration[] = 'urn:oasis:names:tc:SAML:2.0:protocol';
+		$e->protocolSupportEnumeration = $protocols;
 
 
 		$this->addExtensions($metadata, $e);
@@ -440,8 +487,10 @@ class SimpleSAML_Metadata_SAMLBuilder {
 		$e = new SAML2_XML_md_IDPSSODescriptor();
 		$e->protocolSupportEnumeration[] = 'urn:oasis:names:tc:SAML:2.0:protocol';
 
-		if ($metadata->getBoolean('redirect.sign', FALSE)) {
-			$e->WantAuthnRequestSigned = TRUE;
+		if ($metadata->hasValue('sign.authnrequest')) {
+			$e->WantAuthnRequestsSigned = $metadata->getBoolean('sign.authnrequest');
+		} elseif ($metadata->hasValue('redirect.sign')) {
+			$e->WantAuthnRequestsSigned = $metadata->getBoolean('redirect.sign');
 		}
 
 		$this->addExtensions($metadata, $e);

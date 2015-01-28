@@ -1,4 +1,13 @@
 <?php
+
+/**
+ * WARNING:
+ *
+ * THIS FILE IS DEPRECATED AND WILL BE REMOVED IN FUTURE VERSIONS
+ *
+ * @deprecated
+ */
+
 /**
  * WS-Federation/ADFS PRP protocol support for simpleSAMLphp.
  *
@@ -8,13 +17,14 @@
  *
  * @author Hans Zandbelt, SURFnet BV. <hans.zandbelt@surfnet.nl>
  * @package simpleSAMLphp
- * @version $Id$
  */
 
 require_once('../../_include.php');
 
 $config = SimpleSAML_Configuration::getInstance();
 $metadata = SimpleSAML_Metadata_MetaDataStorageHandler::getMetadataHandler();
+
+SimpleSAML_Logger::warning('The file wsfed/sp/initSSO.php is deprecated and will be removed in future versions.');
 
 SimpleSAML_Logger::info('WS-Fed - SP.initSSO: Accessing WS-Fed SP initSSO script');
 
@@ -38,7 +48,7 @@ if ($idpentityid == null) {
 
 	SimpleSAML_Logger::info('WS-Fed - SP.initSSO: No chosen or default IdP, go to WSFeddisco');
 
-	SimpleSAML_Utilities::redirect('/' . $config->getBaseURL() . 'wsfed/sp/idpdisco.php', array(
+	SimpleSAML_Utilities::redirectTrustedURL('/' . $config->getBaseURL() . 'wsfed/sp/idpdisco.php', array(
 		'entityID' => $spentityid,
 		'return' => SimpleSAML_Utilities::selfURL(),
 		'returnIDParam' => 'idpentityid')
@@ -46,12 +56,12 @@ if ($idpentityid == null) {
 }
 
 try {
-	$relaystate = $_GET['RelayState'];
+	$relaystate = SimpleSAML_Utilities::checkURLAllowed($_GET['RelayState']);
 	
 	$idpmeta = $metadata->getMetaData($idpentityid, 'wsfed-idp-remote');
 	$spmeta = $metadata->getMetaData($spentityid, 'wsfed-sp-hosted');
 
-	SimpleSAML_Utilities::redirect($idpmeta['prp'], array(
+	SimpleSAML_Utilities::redirectTrustedURL($idpmeta['prp'], array(
 		'wa' => 'wsignin1.0',
 		'wct' =>  gmdate('Y-m-d\TH:i:s\Z', time()),
 		'wtrealm' => $spentityid,
